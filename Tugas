@@ -1,0 +1,161 @@
+import numpy as np
+from tabulate import tabulate
+
+# ---------------------------------------------------------------
+# Fungsi-fungsi utama
+# ---------------------------------------------------------------
+def f1(x, y):
+    return x**2 + x*y - 10
+
+def f2(x, y):
+    return y + 3*x*y**2 - 57
+
+# ---------------------------------------------------------------
+# Fungsi g1 & g2 untuk metode iterasi
+# ---------------------------------------------------------------
+def g1A(x, y):
+    return np.sqrt(10 - x*y)
+
+def g2A(x, y):
+    return 57 - 3*x*y**2
+
+def g1B(x, y):
+    return 10/x - y
+
+def g2B(x, y):
+    return 57 / (1 + 3*x*y)
+
+# ---------------------------------------------------------------
+# Iterasi Titik Tetap - Jacobi
+# ---------------------------------------------------------------
+def iterasi_jacobi(g1, g2, x0, y0, eps, max_iter=100):
+    history = []
+    for i in range(1, max_iter + 1):
+        x1 = g1(x0, y0)
+        y1 = g2(x0, y0)
+        history.append([i, x1, y1])
+
+        if np.abs(x1 - x0) < eps and np.abs(y1 - y0) < eps:
+            return (x1, y1, i, history, "Konvergen")
+
+        x0, y0 = x1, y1
+    return (x1, y1, i, history, "Tidak konvergen")
+
+# ---------------------------------------------------------------
+# Iterasi Titik Tetap - Seidel
+# ---------------------------------------------------------------
+def iterasi_seidel(g1, g2, x0, y0, eps, max_iter=100):
+    history = []
+    for i in range(1, max_iter + 1):
+        x1 = g1(x0, y0)
+        y1 = g2(x1, y0)
+        history.append([i, x1, y1])
+
+        if np.abs(x1 - x0) < eps and np.abs(y1 - y0) < eps:
+            return (x1, y1, i, history, "Konvergen")
+
+        x0, y0 = x1, y1
+    return (x1, y1, i, history, "Tidak konvergen")
+
+# ---------------------------------------------------------------
+# Newton-Raphson
+# ---------------------------------------------------------------
+def newton_raphson(x0, y0, eps, max_iter=100):
+    history = []
+    for i in range(1, max_iter + 1):
+        J = np.array([[2*x0 + y0, x0],
+                      [3*y0**2, 1 + 6*x0*y0]])
+        F = np.array([f1(x0, y0), f2(x0, y0)])
+
+        try:
+            delta = np.linalg.solve(J, -F)
+        except np.linalg.LinAlgError:
+            return (x0, y0, i, history, "Jacobian singular")
+
+        x1 = x0 + delta[0]
+        y1 = y0 + delta[1]
+        history.append([i, x1, y1])
+
+        if np.abs(x1 - x0) < eps and np.abs(y1 - y0) < eps:
+            return (x1, y1, i, history, "Konvergen")
+
+        x0, y0 = x1, y1
+    return (x1, y1, i, history, "Tidak konvergen")
+
+# ---------------------------------------------------------------
+# Secant method (2 variabel)
+# ---------------------------------------------------------------
+def secant_method(x0, y0, x1, y1, eps, max_iter=100):
+    history = []
+    for i in range(1, max_iter + 1):
+        f1_0, f2_0 = f1(x0, y0), f2(x0, y0)
+        f1_1, f2_1 = f1(x1, y1), f2(x1, y1)
+
+        dx = (x1 - x0) / (f1_1 - f1_0 + 1e-10)
+        dy = (y1 - y0) / (f2_1 - f2_0 + 1e-10)
+
+        x2 = x1 - f1_1 * dx
+        y2 = y1 - f2_1 * dy
+        history.append([i, x2, y2])
+
+        if np.abs(x2 - x1) < eps and np.abs(y2 - y1) < eps:
+            return (x2, y2, i, history, "Konvergen")
+
+        x0, y0, x1, y1 = x1, y1, x2, y2
+    return (x2, y2, i, history, "Tidak konvergen")
+
+# ---------------------------------------------------------------
+# Fungsi cetak hasil
+# ---------------------------------------------------------------
+def print_results(method_name, result):
+    x, y, n_iter, history, status = result
+    print("\n============================================================")
+    print(f"METODE: {method_name}")
+    print("------------------------------------------------------------")
+    print(tabulate(history, headers=['Iterasi', 'x', 'y'], floatfmt=".6f"))
+    print("------------------------------------------------------------")
+    print(f"Hasil akhir: x = {x:.6f}, y = {y:.6f}")
+    print(f"Status: {status} setelah {n_iter} iterasi")
+    print("============================================================\n")
+
+# ---------------------------------------------------------------
+# MAIN PROGRAM
+# ---------------------------------------------------------------
+def main():
+    print("="*80)
+    print("PENYELESAIAN SISTEM PERSAMAAN NON-LINEAR")
+    print("="*80)
+    print("f1(x,y) = x^2 + xy - 10 = 0")
+    print("f2(x,y) = y + 3xy^2 - 57 = 0\n")
+    print("Nilai awal: x0 = 1.5, y0 = 3.5")
+    print("Toleransi: 1e-06")
+    print("NIM: 02 (mod 4 = 2)")
+    print("="*80)
+    print("\nMetode wajib untuk NIM mod 4 = 2:")
+    print("1. Iterasi Titik Tetap (Jacobi) dengan g1B & g2B")
+    print("2. Newton-Raphson")
+    print("3. Secant")
+    print("Tambahan: Iterasi Seidel (g1A & g2A)\n")
+
+    eps = 1e-6
+    x0, y0 = 1.5, 3.5
+
+    # Jacobi (g1B & g2B)
+    result_jacobi = iterasi_jacobi(g1B, g2B, x0, y0, eps)
+    print_results("Iterasi Jacobi (g1B, g2B)", result_jacobi)
+
+    # Seidel (g1A & g2A)
+    result_seidel = iterasi_seidel(g1A, g2A, x0, y0, eps)
+    print_results("Iterasi Seidel (g1A, g2A)", result_seidel)
+
+    # Newton-Raphson
+    result_nr = newton_raphson(x0, y0, eps)
+    print_results("Newton-Raphson", result_nr)
+
+    # Secant
+    result_secant = secant_method(1.4, 3.4, x0, y0, eps)
+    print_results("Secant", result_secant)
+
+# Jalankan program
+if __name__ == "__main__":
+    main()
